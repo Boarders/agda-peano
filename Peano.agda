@@ -101,15 +101,15 @@ from-zero peano = induction-zero (λ _ -> ℕ) Zero Succ
 from∘to : 
   ∀ {N : Set} -> (peano : Peano N _≡_) -> (n : N) ->
   from-ℕ peano (to-ℕ peano n) ≡ n
-from∘to peano n rewrite from-zero peano = 
+from∘to {N} peano n rewrite from-zero peano = 
     induction 
       (λ n -> from-ℕ peano (to-ℕ peano n) ≡ n) 
       n 
-      zero-lem
-      (succ-lem _)
+      (zero-lem {_} {peano} )
+      (λ {prev} -> succ-lem {N} {peano} prev )
   where
   open Peano peano using (induction)
-  zero-lem : ∀ {N} {peano : Peano N _≡_} {n : N} →
+  zero-lem : ∀ {N} {peano : Peano N _≡_}→
            from-ℕ peano
            (Peano.induction peano (λ _ → ℕ) (Peano.zero peano) Zero
             (λ prev → Succ prev))
@@ -129,7 +129,7 @@ from∘to peano n rewrite from-zero peano =
     in
       trans pf1 pf2
 
-  succ-lem : ∀ {N} {peano : Peano N _≡_} {n : N} (prev : N) →
+  succ-lem : ∀ {N} {peano : Peano N _≡_} (prev : N) →
            from-ℕ peano
            (Peano.induction peano (λ _ → ℕ) prev Zero (λ prev → Succ prev))
            ≡ prev →
