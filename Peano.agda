@@ -7,10 +7,6 @@ open import Relation.Binary.PropositionalEquality
 
 data ⊥ : Set where
 
-data _+_ (A : Set) (B : Set) : Set where
-  Left  : A -> A + B
-  Right : B -> A + B
-
 data ℕ : Set where
   Zero : ℕ
   Succ : ℕ -> ℕ
