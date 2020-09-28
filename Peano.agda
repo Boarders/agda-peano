@@ -1,9 +1,10 @@
 module Peano where
 
-
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; _≢_; cong; trans)
 
+_∘_ : ∀ {A B C : Set} -> (g : B -> C) -> (f : A -> B) -> A -> C
+_∘_ g f a = g (f a)
 
 data ⊥ : Set where
 
@@ -165,3 +166,86 @@ to∘from peano (Succ n)
   | to∘from peano n
   = refl
 
+
+
+data NatP (r : Set) : Set where
+  ZeroP : NatP r
+  SuccP : r -> NatP r
+
+record Functor (F : Set -> Set) : Set₁ where
+  constructor Func
+  field
+    Ar : ∀ {A B : Set} -> (f : A -> B) -> F A -> F B
+
+NatP-Functor : Functor NatP
+NatP-Functor = Func map
+  where
+  map : ∀ {A} {B} → (A → B) → NatP A → NatP B
+  map f ZeroP = ZeroP
+  map f (SuccP x) = SuccP (f x)
+  
+
+record Alg (F : Set -> Set) (A : Set) : Set where
+  constructor AlgCon
+  field
+    μ : F A -> A
+
+record Alg-Homo 
+  (A B : Set) {F : Set -> Set} (f : Functor F) (FA : Alg F A) (FB : Alg F B) : Set₁ where
+  constructor AlgH
+  field
+    ↓-map : A -> B
+    ↑-law : ∀ (fa : F A) -> ↓-map (Alg.μ FA fa) ≡ (Alg.μ FB) (Functor.Ar f ↓-map fa)
+
+ℕ-Alg : Alg NatP ℕ
+ℕ-Alg = record { μ = alg }
+  where
+  alg : NatP ℕ -> ℕ
+  alg ZeroP = Zero
+  alg (SuccP x) = Succ x
+
+
+ℕ-w-init 
+  : ∀ {A : Set} 
+  -> (FA : Alg NatP A)
+  -> Alg-Homo ℕ A (NatP-Functor) ℕ-Alg FA
+ℕ-w-init {A} FA = AlgH ↓-map ↓-law
+  where
+--  open Functor {{...}}
+  open Alg     FA public
+  ↓-map : ℕ → A
+  ↓-map Zero = μ ZeroP
+  ↓-map (Succ n) = μ (SuccP (↓-map n))
+
+  ↓-law : (na : NatP ℕ) →
+    ↓-map (Alg.μ ℕ-Alg na) ≡
+    Alg.μ FA (Functor.Ar NatP-Functor ↓-map na)
+  ↓-law ZeroP = refl
+  ↓-law (SuccP x) = refl
+
+
+ℕ-init-uniq
+  : ∀ {A : Set} 
+  -> (FA : Alg NatP A)
+  -> (alg-hom : Alg-Homo ℕ A (NatP-Functor) ℕ-Alg FA)
+  -> ∀ (n : ℕ) 
+  -> (Alg-Homo.↓-map alg-hom n) 
+   ≡ (Alg-Homo.↓-map (ℕ-w-init FA) n)
+ℕ-init-uniq FA alg-hom Zero = ↑-law ZeroP
+  where
+    open Alg-Homo alg-hom public
+ℕ-init-uniq FA alg-hom (Succ n) = 
+  let
+    pf1 :  ↓-map (Succ n) ≡ μ (SuccP (↓-map n))
+    pf1 = ↑-law (SuccP n)
+
+    pf2 :  μ (SuccP (↓-map n)) ≡ μ (SuccP (Alg-Homo.↓-map (ℕ-w-init FA) n))
+    pf2 = cong (μ ∘ SuccP) (ℕ-init-uniq FA alg-hom n)
+  in
+    trans pf1 pf2
+  where
+    open Alg FA public
+    open Alg-Homo alg-hom public
+
+
+  
