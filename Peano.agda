@@ -20,23 +20,23 @@ _+_ (Succ n) m = Succ (n + m)
 _ : 2 + 2 ≡ 4
 _ = refl
 
-record Rel (A : Set) : Set₁ where
+record EqRel (A : Set) : Set₁ where
   field
     _≃_ : A → A → Set
     reflexivity  : ∀ {a : A} → a ≃ a
     symmetry     : ∀ {a b : A} → a ≃ b → b ≃ a
     transitivity : ∀ {a b c : A} → a ≃ b → b ≃ c → a ≃ c
 
-open Rel {{...}} public
+open EqRel {{...}} public
 
-liftEq : ∀ {A : Set}  {{r : Rel A}} → {a b : A} → a ≡ b → (a ≃ b)
+liftEq : ∀ {A : Set}  {{r : EqRel A}} → {a b : A} → a ≡ b → (a ≃ b)
 liftEq refl = reflexivity
 
 ℕ-refl : ∀ {n : ℕ} → n ≡ n
 ℕ-refl = refl
 
 ℕ-symm : ∀ {n m : ℕ} → n ≡ m → m ≡ n
-ℕ-symm eq rewrite eq = refl
+ℕ-symm n≡m rewrite n≡m = refl
 
 ℕ-trans : ∀ {m n r : ℕ} → m ≡ n → n ≡ r → m ≡ r
 ℕ-trans  m≡n n≡r rewrite m≡n | n≡r = refl
@@ -45,7 +45,7 @@ Succ-inj : ∀ {n m : ℕ} → (Succ n) ≡ (Succ m) → n ≡ m
 Succ-inj refl = refl
 
 instance
-  ≡-Nat : Rel ℕ
+  ≡-Nat : EqRel ℕ
   ≡-Nat =
     record
     { _≃_          = _≡_
@@ -54,7 +54,7 @@ instance
     ; transitivity = ℕ-trans
     }
 
-≡-Set : (A : Set) → Rel A
+≡-Set : (A : Set) → EqRel A
 ≡-Set A =
   record
     { _≃_ = _≡_
@@ -63,7 +63,7 @@ instance
     ; transitivity = λ a≡b b≡c → trans a≡b b≡c
     }
 
-record Peano (N : Set) {{rel : Rel N}} : Set₁ where
+record Peano (N : Set) {{rel : EqRel N}} : Set₁ where
   field
     zero : N
     succ : N → N
@@ -109,22 +109,22 @@ instance
       ; induction-succ = λ P a z s → refl
       }
 
-from-ℕ : ∀ {N : Set} {{_ : Rel N}} → {{ _ : Peano N}} → ℕ → N
+from-ℕ : ∀ {N : Set} {{_ : EqRel N}} → {{ _ : Peano N}} → ℕ → N
 from-ℕ {N} n = induction (λ _ → N) n zero succ
 
 
-to-ℕ : ∀ {N : Set} {{_ : Rel N}} → {{_ : Peano N}} → N → ℕ
+to-ℕ : ∀ {N : Set} {{_ : EqRel N}} → {{_ : Peano N}} → N → ℕ
 to-ℕ n = induction (λ _ → ℕ) n zero succ
 
 from∘to : 
-  ∀ {N : Set}{{ rel : Rel N}} → {{peano : Peano N}} → (n : N) →
+  ∀ {N : Set}{{ rel : EqRel N}} → {{peano : Peano N}} → (n : N) →
   from-ℕ (to-ℕ n) ≃ n
 from∘to {N} n = liftEq (prop-eq {N})
   where
   -- In the zero case we apply induction-zero underneath from-ℕ
   -- and then use the definition of from-ℕ
   zero-lem
-    : ∀ {N} {{_ : Rel N}} {{peano : Peano N}}
+    : ∀ {N} {{_ : EqRel N}} {{peano : Peano N}}
     → from-ℕ {N} (induction {N} (λ _ → ℕ) zero Zero Succ) ≡ zero
   zero-lem {N} =
     let
@@ -138,7 +138,7 @@ from∘to {N} n = liftEq (prop-eq {N})
   -- In the successor case we similarly appply induction-succ
   -- underneath from-ℕ and then recurse on the previous proof
   succ-lem
-    : ∀ {N} {{_ : Rel N}} {{peano : Peano N}} (prev : N)
+    : ∀ {N} {{_ : EqRel N}} {{peano : Peano N}} (prev : N)
     → from-ℕ (induction (λ _ → ℕ) prev Zero Succ) ≡ prev
     → from-ℕ (induction (λ _ → ℕ) (succ prev) Zero Succ) ≡ succ prev
   succ-lem prev pf =
@@ -153,7 +153,7 @@ from∘to {N} n = liftEq (prop-eq {N})
       trans pf1 pf2
 
   prop-eq
-    : ∀ {N} {{_ : Rel N}} {{peano : Peano N}}
+    : ∀ {N} {{_ : EqRel N}} {{peano : Peano N}}
     → from-ℕ (to-ℕ n) ≡ n
   prop-eq =
       induction
@@ -166,7 +166,7 @@ from∘to {N} n = liftEq (prop-eq {N})
 
 
 to∘from : 
-  ∀ {N : Set} {{ _ : Rel N }} → {{peano : Peano N}} → (n : ℕ) →
+  ∀ {N : Set} {{ _ : EqRel N }} → {{peano : Peano N}} → (n : ℕ) →
     to-ℕ {N} (from-ℕ n) ≡ n
 to∘from Zero =  (induction-zero (λ _ → ℕ) Zero Succ)
 to∘from {N} {{_}} {{peano}} (Succ n)
